@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
-import { COOKIE_NAME } from '@/lib/auth/session'
+const COOKIE_NAME = 'bus_session'
 
 function getSecret() {
   const secret = process.env.SESSION_SECRET
