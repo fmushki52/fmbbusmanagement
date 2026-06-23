@@ -1,53 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { jwtVerify } from 'jose'
+
 const COOKIE_NAME = 'bus_session'
 
-function getSecret() {
-  const secret = process.env.SESSION_SECRET
-  if (!secret) return new TextEncoder().encode('fallback-secret-change-me')
-  return new TextEncoder().encode(secret)
-}
-
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Public routes
+  // Pass through public routes immediately
   if (
     pathname.startsWith('/login') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/auth') ||
-    pathname === '/favicon.ico'
+    pathname === '/favicon.ico' ||
+    pathname === '/'
   ) {
     return NextResponse.next()
   }
 
+  // If no session cookie, redirect to login
   const token = request.cookies.get(COOKIE_NAME)?.value
   if (!token) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  try {
-    const { payload } = await jwtVerify(token, getSecret())
-    const role = payload.role as string
-
-    // Admin can access everything
-    if (role === 'admin') return NextResponse.next()
-
-    // Role-based routing
-    if (pathname.startsWith('/admin')) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-    if (pathname.startsWith('/app') && role !== 'user') {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-    if (pathname.startsWith('/reports') && role !== 'reporter') {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-
-    return NextResponse.next()
-  } catch {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
+  // Cookie present — let the page's getSession() do full JWT verification
+  // and handle role-based access (redirect to /login if role mismatch)
+  return NextResponse.next()
 }
 
 export const config = {
