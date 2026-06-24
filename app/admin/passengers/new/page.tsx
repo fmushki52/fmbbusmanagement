@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { buses, events } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { createPassenger } from '@/lib/actions/passengers'
 import Link from 'next/link'
@@ -12,10 +12,11 @@ export default async function NewPassengerPage({ searchParams }: { searchParams:
   const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1)
   if (!event) return notFound()
 
-  const busList = await db.select().from(buses).where(eq(buses.eventId, eventId)).orderBy(buses.busNumber)
+  const busList = await db.select().from(buses).where(eq(buses.eventId, eventId))
+    .orderBy(sql`CAST(${buses.busNumber} AS INTEGER)`)
 
   return (
-    <>
+    <div style={{ maxWidth: 540, margin: '0 auto' }} className="py-3 px-3">
       <div className="d-flex align-items-center gap-2 mb-4">
         <Link href={`/admin/passengers?eventId=${eventId}`} className="btn btn-sm btn-outline-secondary">← Back</Link>
         <div>
@@ -23,24 +24,29 @@ export default async function NewPassengerPage({ searchParams }: { searchParams:
           <small className="text-muted">{event.name}</small>
         </div>
       </div>
-      <div className="card border-0 shadow-sm mx-auto" style={{ maxWidth: 560 }}>
-        <div className="card-header bg-white border-bottom py-3">
-          <h6 className="mb-0 fw-semibold">👤 Passenger Details</h6>
-        </div>
+
+      <div className="card border-0 shadow-sm">
         <div className="card-body p-4">
-          <form action={createPassenger}>
+          <form action={createPassenger} className="d-flex flex-column gap-3">
             <input type="hidden" name="eventId" value={eventId} />
-            <div className="mb-3">
-              <label className="form-label" htmlFor="refId">Ref ID <span className="text-danger">*</span></label>
-              <input id="refId" name="refId" required className="form-control" placeholder="Numeric ID" inputMode="numeric" pattern="[0-9]*" onInput={(e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, "") }} />
+
+            <div>
+              <label htmlFor="refId" className="form-label fw-semibold">Ref ID <span className="text-danger">*</span></label>
+              <input
+                id="refId" name="refId" required className="form-control"
+                placeholder="Numeric ID" inputMode="numeric" pattern="[0-9]*"
+                onInput={(e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, '') }}
+              />
             </div>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="name">Full Name <span className="text-danger">*</span></label>
-              <input id="name" name="name" required className="form-control" />
+
+            <div>
+              <label htmlFor="name" className="form-label fw-semibold">Full Name <span className="text-danger">*</span></label>
+              <input id="name" name="name" required className="form-control" placeholder="Enter full name" />
             </div>
-            <div className="row g-3 mb-3">
+
+            <div className="row g-3">
               <div className="col-6">
-                <label className="form-label" htmlFor="gender">Gender</label>
+                <label htmlFor="gender" className="form-label fw-semibold">Gender</label>
                 <select id="gender" name="gender" className="form-select">
                   <option value="">—</option>
                   <option value="M">Male</option>
@@ -49,13 +55,14 @@ export default async function NewPassengerPage({ searchParams }: { searchParams:
                 </select>
               </div>
               <div className="col-6">
-                <label className="form-label" htmlFor="age">Age</label>
-                <input id="age" name="age" type="number" min="0" max="120" className="form-control" />
+                <label htmlFor="age" className="form-label fw-semibold">Age</label>
+                <input id="age" name="age" type="number" min="0" max="120" className="form-control" placeholder="Age" />
               </div>
             </div>
+
             {busList.length > 0 && (
-              <div className="mb-4">
-                <label className="form-label" htmlFor="assignedBusId">Assign to Bus</label>
+              <div>
+                <label htmlFor="assignedBusId" className="form-label fw-semibold">Assign to Bus</label>
                 <select id="assignedBusId" name="assignedBusId" className="form-select">
                   <option value="">No assignment</option>
                   {busList.map((b) => (
@@ -64,13 +71,14 @@ export default async function NewPassengerPage({ searchParams }: { searchParams:
                 </select>
               </div>
             )}
-            <div className="d-grid gap-2 d-sm-flex">
-              <button type="submit" className="btn btn-primary flex-sm-fill">Add Passenger</button>
-              <Link href={`/admin/passengers?eventId=${eventId}`} className="btn btn-outline-secondary flex-sm-fill text-center">Cancel</Link>
+
+            <div className="d-flex gap-2 pt-1">
+              <button type="submit" className="btn btn-primary px-4">Add Passenger</button>
+              <Link href={`/admin/passengers?eventId=${eventId}`} className="btn btn-outline-secondary px-4">Cancel</Link>
             </div>
           </form>
         </div>
       </div>
-    </>
+    </div>
   )
 }

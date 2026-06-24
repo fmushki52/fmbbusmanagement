@@ -6,9 +6,9 @@ export async function getEventSummaryData(eventId: string) {
   const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1)
   if (!event) return null
 
-  const busList = await db.select().from(buses).where(eq(buses.eventId, eventId)).orderBy(buses.busNumber)
+  const busList = await db.select().from(buses).where(eq(buses.eventId, eventId))
+    .orderBy(sql`CAST(${buses.busNumber} AS INTEGER)`)
 
-  // Seat counts in one query
   const seatCountsRaw = await db
     .select({ busId: passengers.seatedBusId, seated: count() })
     .from(passengers)

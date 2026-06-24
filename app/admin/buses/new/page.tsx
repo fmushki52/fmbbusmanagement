@@ -13,7 +13,7 @@ export default async function NewBusPage({ searchParams }: { searchParams: Promi
   if (!event) return notFound()
 
   return (
-    <>
+    <div style={{ maxWidth: 540, margin: '0 auto' }} className="py-3 px-3">
       <div className="d-flex align-items-center gap-2 mb-4">
         <Link href={`/admin/buses?eventId=${eventId}`} className="btn btn-sm btn-outline-secondary">← Back</Link>
         <div>
@@ -21,42 +21,39 @@ export default async function NewBusPage({ searchParams }: { searchParams: Promi
           <small className="text-muted">{event.name}</small>
         </div>
       </div>
-      <div className="card border-0 shadow-sm mx-auto" style={{ maxWidth: 560 }}>
-        <div className="card-header bg-white border-bottom py-3">
-          <h6 className="mb-0 fw-semibold">🚌 Bus Details</h6>
-        </div>
+      <div className="card border-0 shadow-sm">
         <div className="card-body p-4">
-          <form action={createBus}>
+          <form action={createBus} className="d-flex flex-column gap-3">
             <input type="hidden" name="eventId" value={eventId} />
-            <div className="row g-3 mb-3">
+            <div className="row g-3">
               <div className="col-6">
-                <label className="form-label" htmlFor="busNumber">Bus # <span className="text-danger">*</span></label>
-                <input id="busNumber" name="busNumber" required className="form-control" placeholder="1" />
+                <label className="form-label fw-semibold">Bus Number <span className="text-danger">*</span></label>
+                <input name="busNumber" required className="form-control" placeholder="1" inputMode="numeric" />
               </div>
               <div className="col-6">
-                <label className="form-label" htmlFor="busName">Bus Name <span className="text-danger">*</span></label>
-                <input id="busName" name="busName" required className="form-control" placeholder="Alpha" />
+                <label className="form-label fw-semibold">Bus Name <span className="text-danger">*</span></label>
+                <input name="busName" required className="form-control" placeholder="Bus 1" />
               </div>
             </div>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="groupLeaderName">Leader Name <span className="text-danger">*</span></label>
-              <input id="groupLeaderName" name="groupLeaderName" required className="form-control" />
+            <div>
+              <label className="form-label fw-semibold">Group Leader Name <span className="text-danger">*</span></label>
+              <input name="groupLeaderName" required className="form-control" />
             </div>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="groupLeaderContact">Leader Contact <span className="text-danger">*</span></label>
-              <input id="groupLeaderContact" name="groupLeaderContact" required className="form-control" placeholder="+965 9999 9999" />
+            <div>
+              <label className="form-label fw-semibold">Group Leader Contact <span className="text-danger">*</span></label>
+              <input name="groupLeaderContact" required className="form-control" placeholder="+965 XXXX XXXX" />
             </div>
-            <div className="mb-4">
-              <label className="form-label" htmlFor="capacity">Capacity <span className="text-danger">*</span></label>
-              <input id="capacity" name="capacity" type="number" min="1" required className="form-control" placeholder="45" />
+            <div>
+              <label className="form-label fw-semibold">Capacity <span className="text-danger">*</span></label>
+              <input name="capacity" type="number" min="1" required className="form-control" placeholder="45" />
             </div>
-            <div className="d-grid gap-2 d-sm-flex">
-              <button type="submit" className="btn btn-primary flex-sm-fill">Add Bus</button>
-              <Link href={`/admin/buses?eventId=${eventId}`} className="btn btn-outline-secondary flex-sm-fill text-center">Cancel</Link>
+            <div className="d-flex gap-2 pt-1">
+              <button type="submit" className="btn btn-primary px-4">Add Bus</button>
+              <Link href={`/admin/buses?eventId=${eventId}`} className="btn btn-outline-secondary px-4">Cancel</Link>
             </div>
           </form>
         </div>
       </div>
-    </>
+    </div>
   )
 }

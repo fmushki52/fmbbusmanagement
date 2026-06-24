@@ -23,7 +23,8 @@ export default async function PassengersPage({
   let busList: typeof buses.$inferSelect[] = []
 
   if (selectedEvent) {
-    busList = await db.select().from(buses).where(eq(buses.eventId, selectedEvent.id)).orderBy(buses.busNumber)
+    busList = await db.select().from(buses).where(eq(buses.eventId, selectedEvent.id))
+      .orderBy(sql`CAST(${buses.busNumber} AS INTEGER)`)
 
     const conditions = [eq(passengers.eventId, selectedEvent.id)]
     if (q) {
@@ -49,48 +50,48 @@ export default async function PassengersPage({
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
-    <>
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
-        <h2 className="h3 fw-bold mb-0">Passengers</h2>
+    <div className="pb-4">
+      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h2 className="h4 fw-bold mb-0">Passengers</h2>
         <div className="d-flex gap-2">
-          {selectedEvent?.status === 'active' && (
+          {selectedEvent && selectedEvent.status === 'active' && (
             <>
-              <Link href={`/admin/passengers/new?eventId=${selectedEvent.id}`} className="btn btn-primary btn-sm">+ Add</Link>
-              <Link href={`/admin/passengers/import?eventId=${selectedEvent.id}`} className="btn btn-outline-secondary btn-sm">Import CSV/Excel</Link>
+              <Link href={`/admin/passengers/new?eventId=${selectedEvent.id}`} className="btn btn-primary btn-sm">
+                + Add
+              </Link>
+              <Link href={`/admin/passengers/import?eventId=${selectedEvent.id}`} className="btn btn-outline-secondary btn-sm">
+                Import CSV/Excel
+              </Link>
             </>
           )}
         </div>
       </div>
 
       {/* Event picker */}
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-body py-2">
-          <div className="d-flex gap-2 flex-wrap">
-            {eventList.map((e) => (
-              <Link
-                key={e.id}
-                href={`/admin/passengers?eventId=${e.id}`}
-                className={`btn btn-sm rounded-pill ${selectedEvent?.id === e.id ? 'btn-primary' : 'btn-outline-secondary'}`}
-              >
-                {e.name}
-              </Link>
-            ))}
-          </div>
-        </div>
+      <div className="d-flex gap-2 overflow-auto mb-3 pb-1">
+        {eventList.map((e) => (
+          <Link
+            key={e.id}
+            href={`/admin/passengers?eventId=${e.id}`}
+            className={`btn btn-sm flex-shrink-0 ${selectedEvent?.id === e.id ? 'btn-primary' : 'btn-outline-secondary'}`}
+          >
+            {e.name}
+          </Link>
+        ))}
       </div>
 
       {selectedEvent && (
         <>
-          <form method="get" className="d-flex gap-2 mb-4">
+          <form method="get" className="d-flex gap-2 mb-3">
             <input type="hidden" name="eventId" value={selectedEvent.id} />
             <input
               name="q"
               defaultValue={q ?? ''}
               placeholder="Search by name or ref ID…"
-              className="form-control"
+              className="form-control form-control-sm"
             />
-            <button type="submit" className="btn btn-primary px-4">Search</button>
-            {q && <Link href={`/admin/passengers?eventId=${selectedEvent.id}`} className="btn btn-outline-secondary">Clear</Link>}
+            <button type="submit" className="btn btn-primary btn-sm">Search</button>
+            {q && <Link href={`/admin/passengers?eventId=${selectedEvent.id}`} className="btn btn-outline-secondary btn-sm">Clear</Link>}
           </form>
 
           <PassengerTable
@@ -105,6 +106,6 @@ export default async function PassengersPage({
           />
         </>
       )}
-    </>
+    </div>
   )
 }
