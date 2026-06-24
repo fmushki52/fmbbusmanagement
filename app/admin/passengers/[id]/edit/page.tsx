@@ -27,7 +27,7 @@ export default async function EditPassengerPage({ params }: { params: Promise<{ 
           <form action={update}>
             <div className="mb-3">
               <label className="form-label" htmlFor="refId">Ref ID <span className="text-danger">*</span></label>
-              <input id="refId" name="refId" required defaultValue={passenger.refId} className="form-control" />
+              <input id="refId" name="refId" required defaultValue={passenger.refId} className="form-control" inputMode="numeric" pattern="[0-9]*" onInput={(e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, "") }} />
             </div>
             <div className="mb-3">
               <label className="form-label" htmlFor="name">Full Name <span className="text-danger">*</span></label>

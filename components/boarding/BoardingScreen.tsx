@@ -78,11 +78,12 @@ export function BoardingScreen({
   }, [bus.id, bus.eventId])
 
   function handleRefIdChange(val: string) {
-    setRefId(val)
+    const numeric = val.replace(/[^0-9]/g, "")
+    setRefId(numeric)
     setLookup(null)
     setWarning(null)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => doLookup(val), 250)
+    debounceRef.current = setTimeout(() => doLookup(numeric), 250)
   }
 
   async function handleBoard(overrideWarning = false) {
@@ -233,7 +234,7 @@ export function BoardingScreen({
                 value={refId}
                 onChange={e => handleRefIdChange(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !isFull && !isArchived && p && !p.seatedBusId && handleBoard()}
-                placeholder="Scan or type ref ID..."
+                placeholder="Scan or type numeric ID..." inputMode="numeric" pattern="[0-9]*"
                 disabled={isFull || isArchived}
                 className="form-control form-control-lg"
                 autoComplete="off"

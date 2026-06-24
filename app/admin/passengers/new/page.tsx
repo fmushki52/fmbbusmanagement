@@ -32,7 +32,7 @@ export default async function NewPassengerPage({ searchParams }: { searchParams:
             <input type="hidden" name="eventId" value={eventId} />
             <div className="mb-3">
               <label className="form-label" htmlFor="refId">Ref ID <span className="text-danger">*</span></label>
-              <input id="refId" name="refId" required className="form-control" placeholder="Member/ID number" />
+              <input id="refId" name="refId" required className="form-control" placeholder="Numeric ID" inputMode="numeric" pattern="[0-9]*" onInput={(e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, "") }} />
             </div>
             <div className="mb-3">
               <label className="form-label" htmlFor="name">Full Name <span className="text-danger">*</span></label>
