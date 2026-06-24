@@ -47,29 +47,28 @@ export async function POST(req: NextRequest) {
   const txDb = getTxDb()
   try {
     const result = await txDb.transaction(async (tx) => {
-      const busRows = await tx.execute(sql`SELECT * FROM buses WHERE id = ${busId} FOR UPDATE`)
-      const bus = (busRows as unknown as any[])[0]
+      const busResult = await tx.execute(sql`SELECT * FROM buses WHERE id = ${busId} FOR UPDATE`)
+      const bus = (busResult as any).rows?.[0] ?? (busResult as any)[0]
       if (!bus) throw new Error('Bus not found')
 
-      const eventRows = await tx.execute(sql`SELECT status FROM events WHERE id = ${bus.event_id}`)
-      const event = (eventRows as unknown as any[])[0]
+      const eventResult = await tx.execute(sql`SELECT status FROM events WHERE id = ${bus.event_id}`)
+      const event = (eventResult as any).rows?.[0] ?? (eventResult as any)[0]
       if (event?.status === 'archived') throw new Error('Event is archived')
 
-      const countRows = await tx.execute(
+      const countResult = await tx.execute(
         sql`SELECT count(*)::int as cnt FROM passengers WHERE seated_bus_id = ${busId}`
       )
-      const seated = (countRows as unknown as any[])[0]?.cnt ?? 0
+      const countRow = (countResult as any).rows?.[0] ?? (countResult as any)[0]
+      const seated = Number(countRow?.cnt ?? 0)
       if (seated >= bus.capacity) throw new Error('Bus full')
 
-      const pRows = await tx.execute(sql`SELECT * FROM passengers WHERE id = ${passengerId} FOR UPDATE`)
-      const p = (pRows as unknown as any[])[0]
+      const pResult = await tx.execute(sql`SELECT * FROM passengers WHERE id = ${passengerId} FOR UPDATE`)
+      const p = (pResult as any).rows?.[0] ?? (pResult as any)[0]
       if (!p) throw new Error('Passenger not found')
 
       if (p.seated_bus_id && p.seated_bus_id !== busId) {
-        const otherBusRows = await tx.execute(
-          sql`SELECT bus_number FROM buses WHERE id = ${p.seated_bus_id}`
-        )
-        const otherBus = (otherBusRows as unknown as any[])[0]
+        const otherResult = await tx.execute(sql`SELECT bus_number FROM buses WHERE id = ${p.seated_bus_id}`)
+        const otherBus = (otherResult as any).rows?.[0] ?? (otherResult as any)[0]
         throw new Error(`Already seated on Bus #${otherBus?.bus_number ?? '?'}`)
       }
 

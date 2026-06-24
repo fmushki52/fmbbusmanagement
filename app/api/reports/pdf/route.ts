@@ -5,6 +5,13 @@ import { getEventSummaryData, getBusReportData } from '@/lib/reports/data'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const ROW_HEIGHT = 18
+const START_X = 40
+const HEADER_COLOR = '#1a237e'
+const LIGHT_GRAY = '#f0f2f7'
+const TEXT_DARK = '#111827'
+const TEXT_MUTED = '#6b7280'
+
 export async function GET(req: NextRequest) {
   const session = await getSession()
   if (!session || (session.role !== 'admin' && session.role !== 'reporter')) {
@@ -17,33 +24,55 @@ export async function GET(req: NextRequest) {
   if (!type || !id) return NextResponse.json({ error: 'Missing params' }, { status: 400 })
 
   const PDFDocument = (await import('pdfkit')).default
-  const doc = new PDFDocument({ margin: 40, size: 'A4' })
+  const doc = new PDFDocument({ margin: 40, size: 'A4', autoFirstPage: true })
   const chunks: Buffer[] = []
   doc.on('data', (chunk: Buffer) => chunks.push(chunk))
 
-  const headerColor = '#6366f1'
-  const lightGray = '#f3f4f6'
-
   function heading(text: string) {
-    doc.fontSize(16).fillColor(headerColor).text(text).moveDown(0.3)
-    doc.fontSize(10).fillColor('#374151')
+    doc.fontSize(18).fillColor(HEADER_COLOR).text(text).moveDown(0.4)
   }
 
-  function row(label: string, value: string) {
-    doc.fontSize(10).fillColor('#6b7280').text(`${label}: `, { continued: true })
-       .fillColor('#111827').text(value).moveDown(0.2)
+  function subheading(text: string) {
+    doc.fontSize(13).fillColor(HEADER_COLOR).text(text).moveDown(0.3)
+    doc.fontSize(9).fillColor(TEXT_DARK)
+  }
+
+  function metaRow(label: string, value: string) {
+    doc.fontSize(9).fillColor(TEXT_MUTED).text(`${label}: `, { continued: true })
+       .fillColor(TEXT_DARK).text(value)
   }
 
   function tableHeader(cols: string[], widths: number[]) {
-    const startX = 40
-    let x = startX
-    doc.rect(x, doc.y, widths.reduce((a, b) => a + b, 0), 18).fill(headerColor)
-    doc.fillColor('white').fontSize(9)
+    const totalWidth = widths.reduce((a, b) => a + b, 0)
+    const y = doc.y
+    doc.rect(START_X, y, totalWidth, ROW_HEIGHT).fill(HEADER_COLOR)
+    doc.fillColor('white').fontSize(8)
+    let x = START_X
     cols.forEach((col, i) => {
-      doc.text(col, x + 4, doc.y - 14, { width: widths[i] - 4 })
+      doc.text(col, x + 4, y + 5, { width: widths[i] - 8, lineBreak: false })
       x += widths[i]
     })
-    doc.moveDown(0.2).fillColor('#111827')
+    doc.y = y + ROW_HEIGHT + 1
+    doc.fillColor(TEXT_DARK)
+  }
+
+  function tableRow(vals: string[], widths: number[], shade: boolean) {
+    // Check if we need a new page
+    if (doc.y + ROW_HEIGHT > doc.page.height - doc.page.margins.bottom) {
+      doc.addPage()
+    }
+    const totalWidth = widths.reduce((a, b) => a + b, 0)
+    const y = doc.y
+    if (shade) {
+      doc.rect(START_X, y, totalWidth, ROW_HEIGHT).fill(LIGHT_GRAY)
+    }
+    doc.fillColor(TEXT_DARK).fontSize(8)
+    let x = START_X
+    vals.forEach((v, i) => {
+      doc.text(String(v), x + 3, y + 5, { width: widths[i] - 6, lineBreak: false, ellipsis: true })
+      x += widths[i]
+    })
+    doc.y = y + ROW_HEIGHT
   }
 
   if (type === 'bus') {
@@ -51,69 +80,58 @@ export async function GET(req: NextRequest) {
     if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     heading(`Bus Report: #${data.bus.busNumber} – ${data.bus.busName}`)
-    row('Event', data.event.name)
-    row('Group Leader', `${data.bus.groupLeaderName} (${data.bus.groupLeaderContact})`)
-    row('Capacity', `${data.bus.capacity} | Seated: ${data.seated} | Remaining: ${data.bus.capacity - data.seated}`)
-    doc.moveDown(0.5)
+    metaRow('Event', data.event.name)
+    metaRow('Group Leader', `${data.bus.groupLeaderName} (${data.bus.groupLeaderContact})`)
+    metaRow('Capacity', `${data.bus.capacity}   Seated: ${data.seated}   Remaining: ${data.bus.capacity - data.seated}`)
+    doc.moveDown(0.8)
 
-    const widths = [70, 120, 40, 30, 80, 90, 90]
+    const widths = [75, 130, 40, 30, 85, 100, 95]
     tableHeader(['Ref ID', 'Name', 'Gender', 'Age', 'Status', 'Confirmed At', 'Confirmed By'], widths)
 
     data.passengers.forEach((p, i) => {
-      const y = doc.y
-      if (i % 2 === 0) {
-        doc.rect(40, y, widths.reduce((a, b) => a + b, 0), 16).fill(lightGray)
-      }
-      doc.fillColor('#111827').fontSize(8)
-      let x = 40
       const status = p.seatedBusId === id ? 'Boarded' : 'Not Boarded'
-      const vals = [p.refId, p.name, p.gender ?? '', String(p.age ?? ''), status,
-        p.seatedAt ? new Date(p.seatedAt).toLocaleString() : '', p.confirmedBy ?? '']
-      vals.forEach((v, j) => {
-        doc.text(v, x + 2, y + 2, { width: widths[j] - 4, ellipsis: true })
-        x += widths[j]
-      })
-      doc.moveDown(0.15)
+      tableRow([
+        p.refId,
+        p.name,
+        p.gender ?? '',
+        String(p.age ?? ''),
+        status,
+        p.seatedAt ? new Date(p.seatedAt).toLocaleString() : '',
+        p.confirmedBy ?? '',
+      ], widths, i % 2 === 0)
     })
+
   } else if (type === 'event') {
     const data = await getEventSummaryData(id)
     if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     heading(`Event Summary: ${data.event.name}`)
-    if (data.event.eventDate) row('Date', data.event.eventDate)
-    doc.moveDown(0.5)
+    if (data.event.eventDate) metaRow('Date', data.event.eventDate)
+    doc.moveDown(0.8)
 
-    doc.fontSize(12).fillColor(headerColor).text('Buses').moveDown(0.3)
-    const busWidths = [40, 100, 100, 110, 60, 60, 60]
+    subheading('Buses')
+    const busWidths = [35, 110, 110, 110, 60, 55, 60]
     tableHeader(['#', 'Bus Name', 'Leader', 'Contact', 'Capacity', 'Seated', 'Remaining'], busWidths)
 
     data.buses.forEach((b, i) => {
-      const y = doc.y
-      if (i % 2 === 0) doc.rect(40, y, busWidths.reduce((a, c) => a + c, 0), 16).fill(lightGray)
-      doc.fillColor('#111827').fontSize(8)
-      let x = 40
-      const vals = [b.busNumber, b.busName, b.groupLeaderName, b.groupLeaderContact, String(b.capacity), String(b.seated), String(b.remaining)]
-      vals.forEach((v, j) => {
-        doc.text(v, x + 2, y + 2, { width: busWidths[j] - 4 })
-        x += busWidths[j]
-      })
-      doc.moveDown(0.15)
+      tableRow([
+        b.busNumber,
+        b.busName,
+        b.groupLeaderName,
+        b.groupLeaderContact,
+        String(b.capacity),
+        String(b.seated),
+        String(b.remaining),
+      ], busWidths, i % 2 === 0)
     })
 
     if (data.unseatedPassengers.length > 0) {
-      doc.moveDown(0.5).fontSize(12).fillColor(headerColor).text('Unseated Passengers').moveDown(0.3)
-      const upWidths = [90, 150, 60, 40]
+      doc.moveDown(0.8)
+      subheading('Unseated Passengers')
+      const upWidths = [90, 180, 60, 40]
       tableHeader(['Ref ID', 'Name', 'Gender', 'Age'], upWidths)
       data.unseatedPassengers.forEach((p, i) => {
-        const y = doc.y
-        if (i % 2 === 0) doc.rect(40, y, upWidths.reduce((a, c) => a + c, 0), 16).fill(lightGray)
-        doc.fillColor('#111827').fontSize(8)
-        let x = 40
-        ;[p.refId, p.name, p.gender ?? '', String(p.age ?? '')].forEach((v, j) => {
-          doc.text(v, x + 2, y + 2, { width: upWidths[j] - 4 })
-          x += upWidths[j]
-        })
-        doc.moveDown(0.15)
+        tableRow([p.refId, p.name, p.gender ?? '', String(p.age ?? '')], upWidths, i % 2 === 0)
       })
     }
   }

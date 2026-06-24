@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import Image from 'next/image'
+
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -42,7 +42,7 @@ export function NavBar({ role, username }: NavBarProps) {
       <div className="container-fluid px-3">
         {/* Brand */}
         <Link className="navbar-brand d-flex align-items-center gap-2 py-1" href={homeHref}>
-          <Image src="/logo.jfif" alt="FHK" width={36} height={36} className="rounded-circle border border-white border-opacity-50" style={{ objectFit: 'cover' }} />
+          <img src="/logo.jpg" alt="FHK" width={36} height={36} className="rounded-circle border border-white border-opacity-50" style={{ objectFit: "cover" }} />
           <span className="fw-bold d-none d-sm-inline" style={{ letterSpacing: '0.5px' }}>FHK Bus</span>
         </Link>
 
@@ -99,7 +99,7 @@ export function NavBar({ role, username }: NavBarProps) {
         <div className="w-100 border-top border-white border-opacity-25" style={{ background: 'rgba(0,0,0,0.25)' }}>
           <div className="container-fluid py-2">
             <div className="d-flex align-items-center gap-2 px-2 py-2 mb-2 border-bottom border-white border-opacity-25">
-              <Image src="/logo.jfif" alt="FHK" width={28} height={28} className="rounded-circle" style={{ objectFit: 'cover' }} />
+              <img src="/logo.jpg" alt="FHK" width={28} height={28} className="rounded-circle" style={{ objectFit: "cover" }} />
               <div>
                 <div className="text-white fw-semibold" style={{ fontSize: '0.85rem' }}>{username}</div>
                 <span className="badge text-bg-light text-primary" style={{ fontSize: '0.65rem' }}>{role}</span>

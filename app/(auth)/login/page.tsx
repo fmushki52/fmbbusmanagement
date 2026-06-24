@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+
 
 export default function LoginPage() {
   const router = useRouter()
@@ -43,7 +43,7 @@ export default function LoginPage() {
         {/* Logo & brand */}
         <div className="text-center mb-4">
           <div className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style={{ width: 80, height: 80, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '2px solid rgba(255,255,255,0.3)' }}>
-            <Image src="/logo.jfif" alt="FHK Logo" width={64} height={64} className="rounded-circle" style={{ objectFit: 'cover' }} />
+            <img src="/logo.jpg" alt="FHK Logo" width={64} height={64} className="rounded-circle" style={{ objectFit: "cover" }} />
           </div>
           <h1 className="text-white fw-bold mb-1" style={{ fontSize: '1.5rem', letterSpacing: '0.5px' }}>FHK Bus Management</h1>
           <p className="mb-0" style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.85rem' }}>Passenger Confirmation System</p>
