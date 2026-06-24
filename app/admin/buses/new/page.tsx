@@ -3,6 +3,7 @@ import { events } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { createBus } from '@/lib/actions/buses'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 
 export default async function NewBusPage({ searchParams }: { searchParams: Promise<{ eventId?: string }> }) {
   const { eventId } = await searchParams
@@ -12,40 +13,50 @@ export default async function NewBusPage({ searchParams }: { searchParams: Promi
   if (!event) return notFound()
 
   return (
-    <div className="max-w-lg">
-      <h2 className="text-xl font-bold mb-1">Add Bus</h2>
-      <p className="text-sm text-gray-500 mb-6">{event.name}</p>
-      <div className="glass-card p-6">
-        <form action={createBus} className="flex flex-col gap-4">
-          <input type="hidden" name="eventId" value={eventId} />
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Bus Number *</label>
-              <input name="busNumber" required className="glass-input w-full px-4 py-3 text-sm" placeholder="1" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Bus Name *</label>
-              <input name="busName" required className="glass-input w-full px-4 py-3 text-sm" placeholder="Alpha" />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Group Leader Name *</label>
-            <input name="groupLeaderName" required className="glass-input w-full px-4 py-3 text-sm" />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Group Leader Contact *</label>
-            <input name="groupLeaderContact" required className="glass-input w-full px-4 py-3 text-sm" placeholder="+1 555-0100" />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Capacity *</label>
-            <input name="capacity" type="number" min="1" required className="glass-input w-full px-4 py-3 text-sm" placeholder="45" />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="submit" className="btn-primary px-6 py-2 text-sm">Add Bus</button>
-            <a href={`/admin/buses?eventId=${eventId}`} className="btn-ghost px-6 py-2 text-sm">Cancel</a>
-          </div>
-        </form>
+    <>
+      <div className="d-flex align-items-center gap-2 mb-4">
+        <Link href={`/admin/buses?eventId=${eventId}`} className="btn btn-sm btn-outline-secondary">← Back</Link>
+        <div>
+          <h2 className="h4 fw-bold mb-0">Add Bus</h2>
+          <small className="text-muted">{event.name}</small>
+        </div>
       </div>
-    </div>
+      <div className="card border-0 shadow-sm mx-auto" style={{ maxWidth: 560 }}>
+        <div className="card-header bg-white border-bottom py-3">
+          <h6 className="mb-0 fw-semibold">🚌 Bus Details</h6>
+        </div>
+        <div className="card-body p-4">
+          <form action={createBus}>
+            <input type="hidden" name="eventId" value={eventId} />
+            <div className="row g-3 mb-3">
+              <div className="col-6">
+                <label className="form-label" htmlFor="busNumber">Bus # <span className="text-danger">*</span></label>
+                <input id="busNumber" name="busNumber" required className="form-control" placeholder="1" />
+              </div>
+              <div className="col-6">
+                <label className="form-label" htmlFor="busName">Bus Name <span className="text-danger">*</span></label>
+                <input id="busName" name="busName" required className="form-control" placeholder="Alpha" />
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className="form-label" htmlFor="groupLeaderName">Leader Name <span className="text-danger">*</span></label>
+              <input id="groupLeaderName" name="groupLeaderName" required className="form-control" />
+            </div>
+            <div className="mb-3">
+              <label className="form-label" htmlFor="groupLeaderContact">Leader Contact <span className="text-danger">*</span></label>
+              <input id="groupLeaderContact" name="groupLeaderContact" required className="form-control" placeholder="+965 9999 9999" />
+            </div>
+            <div className="mb-4">
+              <label className="form-label" htmlFor="capacity">Capacity <span className="text-danger">*</span></label>
+              <input id="capacity" name="capacity" type="number" min="1" required className="form-control" placeholder="45" />
+            </div>
+            <div className="d-grid gap-2 d-sm-flex">
+              <button type="submit" className="btn btn-primary flex-sm-fill">Add Bus</button>
+              <Link href={`/admin/buses?eventId=${eventId}`} className="btn btn-outline-secondary flex-sm-fill text-center">Cancel</Link>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
   )
 }

@@ -3,6 +3,7 @@ import { users, buses, events, userBuses } from '@/lib/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { updateUser } from '@/lib/actions/users'
+import Link from 'next/link'
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -22,53 +23,63 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
   const update = updateUser.bind(null, id)
 
   return (
-    <div className="max-w-lg">
-      <h2 className="text-xl font-bold mb-6">Edit User: {user.username}</h2>
-      <div className="glass-card p-6">
-        <form action={update} className="flex flex-col gap-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">Role *</label>
-            <select name="role" defaultValue={user.role} className="glass-input w-full px-4 py-3 text-sm">
-              <option value="user">User (Bus Group Leader)</option>
-              <option value="reporter">Reporter (Read-only)</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Status</label>
-            <select name="isActive" defaultValue={user.isActive ? 'true' : 'false'} className="glass-input w-full px-4 py-3 text-sm">
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">New Password (leave blank to keep current)</label>
-            <input name="newPassword" type="password" className="glass-input w-full px-4 py-3 text-sm" />
-          </div>
-          {busList.length > 0 && (
-            <div>
-              <label className="text-sm font-medium mb-1 block">Assigned Buses (for user role)</label>
-              <div className="glass-card p-3 space-y-2 max-h-48 overflow-y-auto">
-                {busesByEvent.map(({ event, buses }) => (
-                  <div key={event.id}>
-                    <p className="text-xs font-medium text-gray-500 mb-1">{event.name}</p>
-                    {buses.map((b) => (
-                      <label key={b.id} className="flex items-center gap-2 py-0.5 cursor-pointer">
-                        <input type="checkbox" name="busIds" value={b.id} defaultChecked={currentBusIds.has(b.id)} />
-                        <span className="text-sm">#{b.busNumber} – {b.busName}</span>
-                      </label>
+    <>
+      <div className="d-flex align-items-center gap-2 mb-4">
+        <Link href="/admin/users" className="btn btn-sm btn-outline-secondary">← Back</Link>
+        <h2 className="h4 fw-bold mb-0">Edit: {user.username}</h2>
+      </div>
+      <div className="card border-0 shadow-sm mx-auto" style={{ maxWidth: 560 }}>
+        <div className="card-header bg-white border-bottom py-3">
+          <h6 className="mb-0 fw-semibold">🔐 User Settings</h6>
+        </div>
+        <div className="card-body p-4">
+          <form action={update}>
+            <div className="mb-3">
+              <label className="form-label" htmlFor="role">Role <span className="text-danger">*</span></label>
+              <select id="role" name="role" defaultValue={user.role} className="form-select">
+                <option value="user">User (Bus Group Leader)</option>
+                <option value="reporter">Reporter (Read-only)</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="form-label" htmlFor="isActive">Status</label>
+              <select id="isActive" name="isActive" defaultValue={user.isActive ? 'true' : 'false'} className="form-select">
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="form-label" htmlFor="newPassword">New Password <span className="text-muted fw-normal">(leave blank to keep)</span></label>
+              <input id="newPassword" name="newPassword" type="password" className="form-control" autoComplete="new-password" />
+            </div>
+            {busList.length > 0 && (
+              <div className="mb-4">
+                <label className="form-label">Assigned Buses <span className="text-muted fw-normal">(User role)</span></label>
+                <div className="card border bg-light" style={{ maxHeight: 200, overflowY: 'auto' }}>
+                  <div className="card-body py-2 px-3">
+                    {busesByEvent.map(({ event, buses }) => (
+                      <div key={event.id} className="mb-2">
+                        <div className="text-muted fw-semibold" style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{event.name}</div>
+                        {buses.map((b) => (
+                          <label key={b.id} className="d-flex align-items-center gap-2 py-1" style={{ cursor: 'pointer', fontSize: '0.875rem' }}>
+                            <input type="checkbox" name="busIds" value={b.id} defaultChecked={currentBusIds.has(b.id)} className="form-check-input mt-0" />
+                            #{b.busNumber} – {b.busName}
+                          </label>
+                        ))}
+                      </div>
                     ))}
                   </div>
-                ))}
+                </div>
               </div>
+            )}
+            <div className="d-grid gap-2 d-sm-flex">
+              <button type="submit" className="btn btn-primary flex-sm-fill">Save Changes</button>
+              <Link href="/admin/users" className="btn btn-outline-secondary flex-sm-fill text-center">Cancel</Link>
             </div>
-          )}
-          <div className="flex gap-3 pt-2">
-            <button type="submit" className="btn-primary px-6 py-2 text-sm">Save Changes</button>
-            <a href="/admin/users" className="btn-ghost px-6 py-2 text-sm">Cancel</a>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

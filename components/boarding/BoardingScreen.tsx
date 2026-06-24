@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useTransition } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { CapacityRing } from '@/components/ui/CapacityRing'
 import { showToast } from '@/components/ui/Toast'
@@ -42,20 +42,15 @@ interface LookupResult {
 }
 
 export function BoardingScreen({
-  bus,
-  event,
-  seated: initialSeated,
-  assignedPassengers,
-  seatedPassengers: initialSeated2,
-  hasAnyAssignments,
-  session,
+  bus, event, seated: initialSeated, assignedPassengers,
+  seatedPassengers: initialSeatedList, hasAnyAssignments, session,
 }: Props) {
   const [tab, setTab] = useState<'confirm' | 'roster' | 'seated'>('confirm')
   const [refId, setRefId] = useState('')
   const [lookup, setLookup] = useState<LookupResult | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
   const [seated, setSeated] = useState(initialSeated)
-  const [seatedList, setSeatedList] = useState(initialSeated2)
+  const [seatedList, setSeatedList] = useState(initialSeatedList)
   const [confirming, setConfirming] = useState(false)
   const [warning, setWarning] = useState<string | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -66,9 +61,7 @@ export function BoardingScreen({
   const isFull = seated >= bus.capacity
 
   useEffect(() => {
-    if (!hasAnyAssignments && !isArchived) {
-      inputRef.current?.focus()
-    }
+    if (!hasAnyAssignments && !isArchived) inputRef.current?.focus()
   }, [hasAnyAssignments, isArchived])
 
   const doLookup = useCallback(async (val: string) => {
@@ -79,13 +72,9 @@ export function BoardingScreen({
         `/api/boarding/lookup?refId=${encodeURIComponent(val)}&busId=${bus.id}&eventId=${bus.eventId}`,
         { cache: 'no-store' }
       )
-      const data = await res.json()
-      setLookup(data)
-    } catch {
-      showToast('Lookup failed', 'error')
-    } finally {
-      setLookupLoading(false)
-    }
+      setLookup(await res.json())
+    } catch { showToast('Lookup failed', 'error') }
+    finally { setLookupLoading(false) }
   }, [bus.id, bus.eventId])
 
   function handleRefIdChange(val: string) {
@@ -98,27 +87,13 @@ export function BoardingScreen({
 
   async function handleBoard(overrideWarning = false) {
     if (!lookup?.passenger) return
-
     const p = lookup.passenger
-
-    // Already on this bus
-    if (p.seatedBusId === bus.id) {
-      showToast('Passenger already boarded on this bus', 'info')
-      return
-    }
-
-    // Seated on another bus
-    if (p.seatedBusId && p.seatedBusId !== bus.id) {
-      showToast(`Already seated on Bus #${p.seatedBusInfo?.busNumber}`, 'error')
-      return
-    }
-
-    // Assigned to a different bus
+    if (p.seatedBusId === bus.id) { showToast('Already boarded on this bus', 'info'); return }
+    if (p.seatedBusId && p.seatedBusId !== bus.id) { showToast(`Already seated on Bus #${p.seatedBusInfo?.busNumber}`, 'error'); return }
     if (!overrideWarning && p.assignedBusId && p.assignedBusId !== bus.id) {
-      setWarning(`This passenger is assigned to Bus #${p.assignedBusInfo?.busNumber} — ${p.assignedBusInfo?.busName}. Board here anyway?`)
+      setWarning(`Assigned to Bus #${p.assignedBusInfo?.busNumber} - ${p.assignedBusInfo?.busName}. Board here anyway?`)
       return
     }
-
     setWarning(null)
     setConfirming(true)
     try {
@@ -128,36 +103,19 @@ export function BoardingScreen({
         body: JSON.stringify({ passengerId: p.id, busId: bus.id }),
       })
       const data = await res.json()
-
-      if (!res.ok) {
-        showToast(data.error ?? 'Failed', 'error')
-        return
-      }
-
-      if (data.status === 'already_boarded') {
-        showToast('Already boarded', 'info')
-        return
-      }
-
-      showToast(`✓ ${lookup.passenger!.name} boarded!`, 'success')
-      setSeated((s) => s + 1)
-      setSeatedList((list) => [{
-        id: p.id,
-        name: p.name,
-        refId,
-        gender: p.gender,
-        age: p.age,
-        seatedAt: new Date(),
-        seatedByUsername: session.username,
+      if (!res.ok) { showToast(data.error ?? 'Failed', 'error'); return }
+      if (data.status === 'already_boarded') { showToast('Already boarded', 'info'); return }
+      showToast(`Boarded: ${p.name}`, 'success')
+      setSeated(s => s + 1)
+      setSeatedList(list => [{
+        id: p.id, name: p.name, refId, gender: p.gender, age: p.age,
+        seatedAt: new Date(), seatedByUsername: session.username,
       }, ...list])
       setRefId('')
       setLookup(null)
       inputRef.current?.focus()
-    } catch {
-      showToast('Network error', 'error')
-    } finally {
-      setConfirming(false)
-    }
+    } catch { showToast('Network error', 'error') }
+    finally { setConfirming(false) }
   }
 
   async function handleRemove(passengerId: string, name: string) {
@@ -170,15 +128,13 @@ export function BoardingScreen({
       })
       if (res.ok) {
         showToast(`${name} removed`, 'info')
-        setSeated((s) => Math.max(0, s - 1))
-        setSeatedList((list) => list.filter((p) => p.id !== passengerId))
+        setSeated(s => Math.max(0, s - 1))
+        setSeatedList(list => list.filter(p => p.id !== passengerId))
       } else {
         const d = await res.json()
         showToast(d.error ?? 'Failed', 'error')
       }
-    } catch {
-      showToast('Network error', 'error')
-    }
+    } catch { showToast('Network error', 'error') }
   }
 
   async function handleRosterBoard(passenger: Passenger) {
@@ -191,148 +147,143 @@ export function BoardingScreen({
       })
       const data = await res.json()
       if (!res.ok) { showToast(data.error ?? 'Failed', 'error'); return }
-      showToast(`✓ ${passenger.name} boarded!`, 'success')
-      setSeated((s) => s + 1)
-      setSeatedList((list) => [{
-        id: passenger.id,
-        name: passenger.name,
-        refId: passenger.refId,
-        gender: passenger.gender,
-        age: passenger.age,
-        seatedAt: new Date(),
-        seatedByUsername: session.username,
+      showToast(`Boarded: ${passenger.name}`, 'success')
+      setSeated(s => s + 1)
+      setSeatedList(list => [{
+        id: passenger.id, name: passenger.name, refId: passenger.refId,
+        gender: passenger.gender, age: passenger.age,
+        seatedAt: new Date(), seatedByUsername: session.username,
       }, ...list])
       router.refresh()
-    } catch {
-      showToast('Network error', 'error')
-    } finally {
-      setConfirming(false)
-    }
+    } catch { showToast('Network error', 'error') }
+    finally { setConfirming(false) }
   }
 
   const p = lookup?.passenger
+  const pct = Math.round((seated / bus.capacity) * 100)
+  const tabs = [
+    { key: 'confirm', label: 'Scan & Confirm' },
+    ...(hasAnyAssignments ? [{ key: 'roster', label: `Roster (${assignedPassengers.length})` }] : []),
+    { key: 'seated', label: `Seated (${seatedList.length})` },
+  ] as const
 
   return (
-    <div className="max-w-lg mx-auto p-4 pb-8">
+    <div className="container-fluid py-3 px-3" style={{ maxWidth: 560, margin: '0 auto' }}>
+
       {/* Bus header */}
-      <div className="glass-card p-5 mb-4 animate-fade-in">
-        <div className="flex items-center gap-4">
-          <CapacityRing seated={seated} capacity={bus.capacity} size={100} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-gray-500">{event.name}</p>
-            <h2 className="text-xl font-bold">Bus #{bus.busNumber}</h2>
-            <p className="font-medium text-gray-700 dark:text-gray-300">{bus.busName}</p>
-            <p className="text-sm text-gray-500 mt-1">
-              👤 {bus.groupLeaderName} · {bus.groupLeaderContact}
-            </p>
+      <div className="card border-0 shadow-sm mb-3">
+        <div className="card-body p-3">
+          <div className="d-flex align-items-center gap-3">
+            <CapacityRing seated={seated} capacity={bus.capacity} size={80} />
+            <div className="flex-grow-1 min-w-0">
+              <div className="text-muted small">{event.name}</div>
+              <h5 className="fw-bold mb-0">Bus #{bus.busNumber} — {bus.busName}</h5>
+              <div className="small text-muted">Leader: {bus.groupLeaderName}</div>
+              <div className="small text-muted">{bus.groupLeaderContact}</div>
+            </div>
           </div>
+          <div className="mt-2">
+            <div className="progress" style={{ height: 8 }}>
+              <div
+                className={`progress-bar ${pct >= 100 ? 'bg-danger' : pct >= 85 ? 'bg-warning' : 'bg-success'}`}
+                style={{ width: `${Math.min(100, pct)}%` }}
+              />
+            </div>
+            <div className="d-flex justify-content-between mt-1" style={{ fontSize: '0.75rem' }}>
+              <span className="text-muted">{seated} seated</span>
+              <span className="text-muted">{bus.capacity - seated} remaining</span>
+            </div>
+          </div>
+          {isFull && (
+            <div className="alert alert-danger py-1 px-3 mb-0 mt-2 text-center fw-bold" style={{ fontSize: '0.85rem' }}>
+              BUS FULL
+            </div>
+          )}
+          {isArchived && (
+            <div className="alert alert-warning py-1 px-3 mb-0 mt-2 text-center" style={{ fontSize: '0.85rem' }}>
+              Event archived — read only
+            </div>
+          )}
         </div>
-        <div className="mt-4">
-          
-        </div>
-        {isFull && (
-          <div className="mt-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl px-4 py-2 text-center text-red-600 font-bold text-sm">
-            🚫 BUS FULL
-          </div>
-        )}
-        {isArchived && (
-          <div className="mt-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 rounded-xl px-4 py-2 text-center text-amber-600 text-sm">
-            ⚠ Event archived — read only
-          </div>
-        )}
       </div>
 
       {/* Tabs */}
-      <div className="glass-card p-1 flex gap-1 mb-4">
-        {(['confirm', ...(hasAnyAssignments ? ['roster'] : []), 'seated'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t as any)}
-            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all capitalize ${
-              tab === t ? 'bg-indigo-500 text-white shadow-sm' : 'hover:bg-white/20'
-            }`}
-          >
-            {t === 'roster' ? `Roster (${assignedPassengers.length})` : t === 'seated' ? `Seated (${seatedList.length})` : 'Confirm'}
-          </button>
+      <ul className="nav nav-pills nav-fill mb-3 gap-1">
+        {tabs.map(t => (
+          <li className="nav-item" key={t.key}>
+            <button
+              className={`nav-link w-100 py-2 ${tab === t.key ? 'active' : 'text-secondary bg-white border'}`}
+              style={{ fontSize: '0.82rem', borderRadius: '0.5rem' }}
+              onClick={() => setTab(t.key as any)}
+            >
+              {t.label}
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
 
       {/* Confirm tab */}
       {tab === 'confirm' && (
-        <div className="space-y-4 animate-slide-up">
-          <div className="glass-card p-4">
-            <label className="text-sm font-medium mb-2 block">Passenger Ref ID</label>
-            <div className="flex gap-2">
+        <div className="card border-0 shadow-sm">
+          <div className="card-body p-3">
+            <label className="form-label fw-semibold" style={{ fontSize: '0.85rem' }}>Passenger Ref ID</label>
+            <div className="input-group mb-2">
               <input
                 ref={inputRef}
                 value={refId}
-                onChange={(e) => handleRefIdChange(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !isFull && !isArchived && p && !p.seatedBusId && handleBoard()}
-                placeholder="Scan or type ref ID…"
+                onChange={e => handleRefIdChange(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !isFull && !isArchived && p && !p.seatedBusId && handleBoard()}
+                placeholder="Scan or type ref ID..."
                 disabled={isFull || isArchived}
-                className="glass-input flex-1 px-4 py-3 text-sm"
+                className="form-control form-control-lg"
                 autoComplete="off"
               />
               {refId && (
-                <button onClick={() => { setRefId(''); setLookup(null); setWarning(null); inputRef.current?.focus() }}
-                  className="btn-ghost px-3 py-2 text-sm">✕</button>
+                <button className="btn btn-outline-secondary" onClick={() => { setRefId(''); setLookup(null); setWarning(null); inputRef.current?.focus() }}>X</button>
               )}
             </div>
 
-            {lookupLoading && <p className="text-sm text-gray-400 mt-2">Looking up…</p>}
+            {lookupLoading && <p className="text-muted small">Looking up...</p>}
 
             {lookup && !lookupLoading && (
-              <div className="mt-3 animate-slide-up">
+              <div className="mt-2">
                 {!lookup.found ? (
-                  <div className="bg-red-50 dark:bg-red-950/30 rounded-xl px-4 py-3 text-red-600 text-sm font-medium">
-                    ✕ Passenger not found
-                  </div>
+                  <div className="alert alert-danger py-2 small mb-0">Passenger not found</div>
                 ) : (
-                  <div>
-                    <div className="glass-card p-4 mb-3">
-                      <p className="font-semibold text-base">{p!.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {[p!.gender, p!.age ? `${p!.age} yrs` : null].filter(Boolean).join(' · ')}
-                      </p>
-                      {p!.seatedBusId === bus.id && (
-                        <p className="text-xs text-emerald-600 mt-1 font-medium">✓ Already boarded on this bus</p>
-                      )}
-                      {p!.seatedBusId && p!.seatedBusId !== bus.id && (
-                        <p className="text-xs text-red-500 mt-1 font-medium">
-                          ✕ Seated on Bus #{p!.seatedBusInfo?.busNumber}
-                        </p>
-                      )}
-                      {!p!.seatedBusId && p!.assignedBusId && p!.assignedBusId !== bus.id && (
-                        <p className="text-xs text-amber-500 mt-1">
-                          ⚠ Assigned to Bus #{p!.assignedBusInfo?.busNumber}
-                        </p>
-                      )}
+                  <>
+                    <div className="card bg-light border-0 mb-2">
+                      <div className="card-body py-2 px-3">
+                        <div className="fw-semibold">{p!.name}</div>
+                        <div className="text-muted small">
+                          {[p!.gender, p!.age ? `${p!.age} yrs` : null].filter(Boolean).join(' · ')}
+                        </div>
+                        {p!.seatedBusId === bus.id && <div className="text-success small mt-1 fw-medium">Already boarded on this bus</div>}
+                        {p!.seatedBusId && p!.seatedBusId !== bus.id && <div className="text-danger small mt-1">Seated on Bus #{p!.seatedBusInfo?.busNumber}</div>}
+                        {!p!.seatedBusId && p!.assignedBusId && p!.assignedBusId !== bus.id && (
+                          <div className="text-warning small mt-1">Assigned to Bus #{p!.assignedBusInfo?.busNumber}</div>
+                        )}
+                      </div>
                     </div>
 
                     {warning && (
-                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 rounded-xl p-3 mb-3">
-                        <p className="text-sm text-amber-700 mb-2">{warning}</p>
-                        <div className="flex gap-2">
-                          <button onClick={() => handleBoard(true)} disabled={confirming}
-                            className="btn-primary px-4 py-1.5 text-xs">Board anyway</button>
-                          <button onClick={() => setWarning(null)} className="btn-ghost px-4 py-1.5 text-xs">Cancel</button>
+                      <div className="alert alert-warning py-2 mb-2" style={{ fontSize: '0.85rem' }}>
+                        <p className="mb-2">{warning}</p>
+                        <div className="d-flex gap-2">
+                          <button onClick={() => handleBoard(true)} disabled={confirming} className="btn btn-warning btn-sm">Board anyway</button>
+                          <button onClick={() => setWarning(null)} className="btn btn-outline-secondary btn-sm">Cancel</button>
                         </div>
                       </div>
                     )}
 
                     {!warning && !p!.seatedBusId && !isFull && !isArchived && (
-                      <button
-                        onClick={() => handleBoard()}
-                        disabled={confirming}
-                        className="btn-primary w-full py-3 text-sm"
-                      >
-                        {confirming ? 'Confirming…' : '✓ Confirm Boarding'}
+                      <button onClick={() => handleBoard()} disabled={confirming} className="btn btn-success w-100">
+                        {confirming ? (
+                          <><span className="spinner-border spinner-border-sm me-1" />Confirming...</>
+                        ) : 'Confirm Boarding'}
                       </button>
                     )}
-                    {isFull && !p!.seatedBusId && (
-                      <p className="text-center text-red-500 text-sm font-medium">Bus is full</p>
-                    )}
-                  </div>
+                    {isFull && !p!.seatedBusId && <p className="text-danger text-center small fw-medium mb-0">Bus is full</p>}
+                  </>
                 )}
               </div>
             )}
@@ -342,33 +293,25 @@ export function BoardingScreen({
 
       {/* Roster tab */}
       {tab === 'roster' && hasAnyAssignments && (
-        <div className="glass-card overflow-hidden animate-slide-up">
+        <div className="card border-0 shadow-sm">
           {assignedPassengers.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No passengers assigned to this bus</div>
+            <div className="card-body text-center text-muted py-5">No passengers assigned to this bus</div>
           ) : (
-            <div className="divide-y divide-white/10">
-              {assignedPassengers.map((p) => {
-                const isSeatedHere = seatedList.some((s) => s.id === p.id)
+            <div className="list-group list-group-flush">
+              {assignedPassengers.map(ap => {
+                const isSeatedHere = seatedList.some(s => s.id === ap.id)
                 return (
-                  <div key={p.id} className="flex items-center gap-3 p-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{p.name}</p>
-                      <p className="text-xs text-gray-500">{p.refId}</p>
+                  <div key={ap.id} className="list-group-item d-flex align-items-center gap-2 py-2">
+                    <div className="flex-grow-1 min-w-0">
+                      <div className="fw-medium" style={{ fontSize: '0.875rem' }}>{ap.name}</div>
+                      <div className="text-muted" style={{ fontSize: '0.75rem' }}>{ap.refId}</div>
                     </div>
                     {isSeatedHere ? (
-                      <span className="text-xs bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 px-2 py-1 rounded-full">
-                        ✓ Boarded
-                      </span>
-                    ) : p.seatedBusId && p.seatedBusId !== bus.id ? (
-                      <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
-                        Other bus
-                      </span>
+                      <span className="badge bg-success-subtle text-success-emphasis">Boarded</span>
+                    ) : ap.seatedBusId && ap.seatedBusId !== bus.id ? (
+                      <span className="badge bg-danger-subtle text-danger-emphasis">Other bus</span>
                     ) : (
-                      <button
-                        onClick={() => handleRosterBoard(p)}
-                        disabled={confirming || isFull || isArchived}
-                        className="btn-primary px-3 py-1 text-xs"
-                      >
+                      <button onClick={() => handleRosterBoard(ap)} disabled={confirming || isFull || isArchived} className="btn btn-primary btn-sm">
                         Board
                       </button>
                     )}
@@ -382,27 +325,24 @@ export function BoardingScreen({
 
       {/* Seated tab */}
       {tab === 'seated' && (
-        <div className="glass-card overflow-hidden animate-slide-up">
+        <div className="card border-0 shadow-sm">
           {seatedList.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No passengers seated yet</div>
+            <div className="card-body text-center text-muted py-5">No passengers seated yet</div>
           ) : (
-            <div className="divide-y divide-white/10">
-              {seatedList.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 p-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{p.name}</p>
-                    <p className="text-xs text-gray-500">{p.refId}</p>
+            <div className="list-group list-group-flush">
+              {seatedList.map(sp => (
+                <div key={sp.id} className="list-group-item d-flex align-items-center gap-2 py-2">
+                  <div className="flex-grow-1 min-w-0">
+                    <div className="fw-medium" style={{ fontSize: '0.875rem' }}>{sp.name}</div>
+                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>{sp.refId}</div>
                   </div>
-                  {p.seatedAt && (
-                    <p className="text-xs text-gray-400 hidden sm:block">
-                      {new Date(p.seatedAt).toLocaleTimeString()}
-                    </p>
+                  {sp.seatedAt && (
+                    <div className="text-muted d-none d-sm-block" style={{ fontSize: '0.72rem' }}>
+                      {new Date(sp.seatedAt).toLocaleTimeString()}
+                    </div>
                   )}
                   {!isArchived && (
-                    <button
-                      onClick={() => handleRemove(p.id, p.name)}
-                      className="text-xs text-red-400 hover:text-red-600 px-2 py-1"
-                    >
+                    <button onClick={() => handleRemove(sp.id, sp.name)} className="btn btn-outline-danger btn-sm" style={{ fontSize: '0.75rem' }}>
                       Remove
                     </button>
                   )}

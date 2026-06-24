@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from 'react'
 import Papa from 'papaparse'
 import { bulkImportPassengers, type ImportRow, type ImportResult } from '@/lib/actions/passengers'
 import type { Bus } from '@/lib/db/schema'
+import Link from 'next/link'
 
 interface Props {
   eventId: string
@@ -42,15 +43,11 @@ export function ImportForm({ eventId, buses }: Props) {
       const ws = wb.worksheets[0]
       const headers: string[] = []
       const data: Record<string, string>[] = []
-
       ws.eachRow((row, ri) => {
-        if (ri === 1) {
-          row.eachCell((cell) => headers.push(String(cell.value ?? '')))
-        } else {
+        if (ri === 1) { row.eachCell((cell) => headers.push(String(cell.value ?? ''))) }
+        else {
           const obj: Record<string, string> = {}
-          row.eachCell({ includeEmpty: true }, (cell, ci) => {
-            obj[headers[ci - 1]] = String(cell.value ?? '')
-          })
+          row.eachCell({ includeEmpty: true }, (cell, ci) => { obj[headers[ci - 1]] = String(cell.value ?? '') })
           data.push(obj)
         }
       })
@@ -90,55 +87,64 @@ export function ImportForm({ eventId, buses }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="glass-card p-6">
-        <h3 className="font-semibold mb-3">Upload File</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          CSV or Excel with columns: <code className="bg-black/10 px-1 rounded">ref_id</code>, <code className="bg-black/10 px-1 rounded">name</code>, <code className="bg-black/10 px-1 rounded">gender</code> (optional), <code className="bg-black/10 px-1 rounded">age</code> (optional), <code className="bg-black/10 px-1 rounded">bus_number</code> (optional)
-        </p>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          onChange={handleFile}
-          className="glass-input px-4 py-3 text-sm w-full"
-        />
-        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+    <div>
+      <div className="card border-0 shadow-sm mb-3">
+        <div className="card-header bg-white border-bottom py-3">
+          <h6 className="mb-0 fw-semibold">Upload File</h6>
+        </div>
+        <div className="card-body p-4">
+          <p className="small text-muted mb-3">
+            CSV or Excel with columns:{' '}
+            <code className="bg-light px-1 rounded">ref_id</code>,{' '}
+            <code className="bg-light px-1 rounded">name</code>,{' '}
+            <code className="bg-light px-1 rounded">gender</code> (optional),{' '}
+            <code className="bg-light px-1 rounded">age</code> (optional),{' '}
+            <code className="bg-light px-1 rounded">bus_number</code> (optional)
+          </p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleFile}
+            className="form-control"
+          />
+          {error && <div className="alert alert-danger py-2 small mt-2 mb-0">{error}</div>}
+        </div>
       </div>
 
       {preview.length > 0 && (
-        <div className="glass-card overflow-hidden">
-          <div className="p-4 border-b border-white/20 flex items-center justify-between">
-            <h3 className="font-semibold">Preview ({rows.length} rows)</h3>
-            <button onClick={handleImport} disabled={isPending} className="btn-primary px-5 py-2 text-sm">
-              {isPending ? 'Importing…' : `Import ${rows.length} rows`}
+        <div className="card border-0 shadow-sm mb-3">
+          <div className="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+            <h6 className="mb-0 fw-semibold">Preview ({rows.length} rows)</h6>
+            <button onClick={handleImport} disabled={isPending} className="btn btn-primary btn-sm">
+              {isPending ? <><span className="spinner-border spinner-border-sm me-1" />Importing...</> : `Import ${rows.length} rows`}
             </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="p-3 text-left font-medium text-gray-500">Ref ID</th>
-                  <th className="p-3 text-left font-medium text-gray-500">Name</th>
-                  <th className="p-3 text-left font-medium text-gray-500">Gender</th>
-                  <th className="p-3 text-left font-medium text-gray-500">Age</th>
-                  <th className="p-3 text-left font-medium text-gray-500">Bus #</th>
+          <div className="table-responsive">
+            <table className="table table-hover table-sm mb-0" style={{ fontSize: '0.82rem' }}>
+              <thead className="table-light">
+                <tr>
+                  <th>Ref ID</th>
+                  <th>Name</th>
+                  <th>Gender</th>
+                  <th>Age</th>
+                  <th>Bus #</th>
                 </tr>
               </thead>
               <tbody>
                 {preview.map((r, i) => (
-                  <tr key={i} className="border-b border-white/10">
-                    <td className="p-3 font-mono text-xs">{r.refId}</td>
-                    <td className="p-3">{r.name}</td>
-                    <td className="p-3 text-gray-500">{r.gender ?? '—'}</td>
-                    <td className="p-3 text-gray-500">{r.age ?? '—'}</td>
-                    <td className="p-3 text-gray-500">{r.assignedBusNumber ?? '—'}</td>
+                  <tr key={i}>
+                    <td className="font-monospace">{r.refId}</td>
+                    <td>{r.name}</td>
+                    <td className="text-muted">{r.gender ?? '—'}</td>
+                    <td className="text-muted">{r.age ?? '—'}</td>
+                    <td className="text-muted">{r.assignedBusNumber ?? '—'}</td>
                   </tr>
                 ))}
                 {rows.length > 10 && (
                   <tr>
-                    <td colSpan={5} className="p-3 text-center text-gray-500 text-xs">
-                      … and {rows.length - 10} more rows
+                    <td colSpan={5} className="text-center text-muted py-2 small">
+                      ... and {rows.length - 10} more rows
                     </td>
                   </tr>
                 )}
@@ -149,26 +155,28 @@ export function ImportForm({ eventId, buses }: Props) {
       )}
 
       {result && (
-        <div className="glass-card p-4 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-600">
-            <span className="text-xl">✓</span>
-            <p className="font-semibold">{result.imported} passengers imported successfully</p>
-          </div>
-          {result.errors.length > 0 && (
-            <div>
-              <p className="text-sm font-medium text-red-500 mb-2">{result.errors.length} rows rejected:</p>
-              <div className="space-y-1">
-                {result.errors.map((e, i) => (
-                  <p key={i} className="text-xs text-red-400 bg-red-50 dark:bg-red-950/30 rounded px-3 py-1">
-                    Row {e.row} (ref: {e.refId || '—'}): {e.error}
-                  </p>
-                ))}
-              </div>
+        <div className="card border-0 shadow-sm">
+          <div className="card-body p-4">
+            <div className="d-flex align-items-center gap-2 mb-3 text-success">
+              <span className="fs-4">✓</span>
+              <p className="fw-semibold mb-0">{result.imported} passengers imported successfully</p>
             </div>
-          )}
-          <a href={`/admin/passengers?eventId=${eventId}`} className="btn-primary px-5 py-2 text-sm inline-block mt-2">
-            View Passengers
-          </a>
+            {result.errors.length > 0 && (
+              <div className="mb-3">
+                <p className="small fw-semibold text-danger mb-2">{result.errors.length} rows rejected:</p>
+                <div className="d-flex flex-column gap-1">
+                  {result.errors.map((e, i) => (
+                    <div key={i} className="alert alert-danger py-1 px-3 small mb-0">
+                      Row {e.row} (ref: {e.refId || '—'}): {e.error}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Link href={`/admin/passengers?eventId=${eventId}`} className="btn btn-primary btn-sm">
+              View Passengers
+            </Link>
+          </div>
         </div>
       )}
     </div>

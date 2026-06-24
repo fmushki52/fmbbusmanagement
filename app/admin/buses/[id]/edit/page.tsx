@@ -3,6 +3,7 @@ import { buses } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { updateBus } from '@/lib/actions/buses'
+import Link from 'next/link'
 
 export default async function EditBusPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -12,38 +13,46 @@ export default async function EditBusPage({ params }: { params: Promise<{ id: st
   const update = updateBus.bind(null, id)
 
   return (
-    <div className="max-w-lg">
-      <h2 className="text-xl font-bold mb-6">Edit Bus #{bus.busNumber}</h2>
-      <div className="glass-card p-6">
-        <form action={update} className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Bus Number *</label>
-              <input name="busNumber" required defaultValue={bus.busNumber} className="glass-input w-full px-4 py-3 text-sm" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Bus Name *</label>
-              <input name="busName" required defaultValue={bus.busName} className="glass-input w-full px-4 py-3 text-sm" />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Group Leader Name *</label>
-            <input name="groupLeaderName" required defaultValue={bus.groupLeaderName} className="glass-input w-full px-4 py-3 text-sm" />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Group Leader Contact *</label>
-            <input name="groupLeaderContact" required defaultValue={bus.groupLeaderContact} className="glass-input w-full px-4 py-3 text-sm" />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Capacity *</label>
-            <input name="capacity" type="number" min="1" required defaultValue={bus.capacity} className="glass-input w-full px-4 py-3 text-sm" />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="submit" className="btn-primary px-6 py-2 text-sm">Save</button>
-            <a href={`/admin/buses?eventId=${bus.eventId}`} className="btn-ghost px-6 py-2 text-sm">Cancel</a>
-          </div>
-        </form>
+    <>
+      <div className="d-flex align-items-center gap-2 mb-4">
+        <Link href={`/admin/buses?eventId=${bus.eventId}`} className="btn btn-sm btn-outline-secondary">← Back</Link>
+        <h2 className="h4 fw-bold mb-0">Edit Bus #{bus.busNumber}</h2>
       </div>
-    </div>
+      <div className="card border-0 shadow-sm mx-auto" style={{ maxWidth: 560 }}>
+        <div className="card-header bg-white border-bottom py-3">
+          <h6 className="mb-0 fw-semibold">🚌 Bus Details</h6>
+        </div>
+        <div className="card-body p-4">
+          <form action={update}>
+            <div className="row g-3 mb-3">
+              <div className="col-6">
+                <label className="form-label" htmlFor="busNumber">Bus # <span className="text-danger">*</span></label>
+                <input id="busNumber" name="busNumber" required defaultValue={bus.busNumber} className="form-control" />
+              </div>
+              <div className="col-6">
+                <label className="form-label" htmlFor="busName">Bus Name <span className="text-danger">*</span></label>
+                <input id="busName" name="busName" required defaultValue={bus.busName} className="form-control" />
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className="form-label" htmlFor="groupLeaderName">Leader Name <span className="text-danger">*</span></label>
+              <input id="groupLeaderName" name="groupLeaderName" required defaultValue={bus.groupLeaderName} className="form-control" />
+            </div>
+            <div className="mb-3">
+              <label className="form-label" htmlFor="groupLeaderContact">Leader Contact <span className="text-danger">*</span></label>
+              <input id="groupLeaderContact" name="groupLeaderContact" required defaultValue={bus.groupLeaderContact} className="form-control" />
+            </div>
+            <div className="mb-4">
+              <label className="form-label" htmlFor="capacity">Capacity <span className="text-danger">*</span></label>
+              <input id="capacity" name="capacity" type="number" min="1" required defaultValue={bus.capacity} className="form-control" />
+            </div>
+            <div className="d-grid gap-2 d-sm-flex">
+              <button type="submit" className="btn btn-primary flex-sm-fill">Save Changes</button>
+              <Link href={`/admin/buses?eventId=${bus.eventId}`} className="btn btn-outline-secondary flex-sm-fill text-center">Cancel</Link>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
   )
 }
